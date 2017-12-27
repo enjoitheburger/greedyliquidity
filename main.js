@@ -9,44 +9,11 @@ const CURRENCY1 = 'XRP'
 const CURRENCY2 = 'ETH'
 const TICKER_SYM = 'XRPETH'
 const DIVISOR_CONSTANT = 1
-const SELL_MARGIN = 1.009
-const BUY_MARGIN = 0.99
+const SELL_MARGIN = 1.001
+const BUY_MARGIN = 0.9990
 
-function sellOrder() {
-    binance.balance(function(balances) {
-        binance.prices(function(ticker) {
-            console.log('-----------------SELL ORDER------------------')
-            console.log(`${CURRENCY1} balance: `, balances[CURRENCY1].available);
-            console.log(`Price of ${TICKER_SYM}: `, ticker[TICKER_SYM]);
-            if (balances[CURRENCY1].available > 0) {
-                const sellPrice = (ticker[TICKER_SYM]*SELL_MARGIN).toPrecision(5)
-                const orderQuantity = Math.floor(balances[CURRENCY1].available/DIVISOR_CONSTANT)
-                console.log('Order quantity', orderQuantity)
-                console.log('high-ball price', sellPrice)
-                binance.sell(TICKER_SYM, orderQuantity, sellPrice);
-            }
-            console.log('----------------------------------------------')
-        })
-    });
-}
-
-function buyOrder() {
-    binance.balance(function(balances) {
-        binance.prices(function(ticker) {
-            console.log('-----------------BUY ORDER------------------')
-            console.log(`${CURRENCY2} balance: `, balances[CURRENCY2].available);
-            console.log(`Price of ${TICKER_SYM}: `, ticker[TICKER_SYM]);
-            if (balances[CURRENCY2].available > 0) {
-                const buyPrice = (ticker[TICKER_SYM]*BUY_MARGIN).toPrecision(5)
-                const orderQuantity = Math.floor(balances[CURRENCY2].available/DIVISOR_CONSTANT/buyPrice)
-                console.log('Order quantity', orderQuantity)
-                console.log('Low-ball price', buyPrice)
-                binance.buy(TICKER_SYM, orderQuantity, buyPrice);
-            }
-            console.log('----------------------------------------------')
-        })
-    });
-}
+binance.websockets.userData(balance_update, execution_update);
+buyOrder()
 
 function balance_update(data) {
 	console.log("Balance Update");
@@ -85,7 +52,39 @@ function execution_update(data) {
     }
 	
 }
-binance.websockets.userData(balance_update, execution_update);
 
-buyOrder()
-sellOrder()
+function sellOrder() {
+    binance.balance(function(balances) {
+        binance.prices(function(ticker) {
+            console.log('-----------------SELL ORDER------------------')
+            console.log(`${CURRENCY1} balance: `, balances[CURRENCY1].available);
+            console.log(`Price of ${TICKER_SYM}: `, ticker[TICKER_SYM]);
+            if (balances[CURRENCY1].available > 0) {
+                const sellPrice = (ticker[TICKER_SYM]*SELL_MARGIN).toPrecision(5)
+                const orderQuantity = Math.floor(balances[CURRENCY1].available/DIVISOR_CONSTANT)
+                console.log('Order quantity', orderQuantity)
+                console.log('high-ball price', sellPrice)
+                binance.sell(TICKER_SYM, orderQuantity, sellPrice);
+            }
+            console.log('----------------------------------------------')
+        })
+    });
+}
+
+function buyOrder() {
+    binance.balance(function(balances) {
+        binance.prices(function(ticker) {
+            console.log('-----------------BUY ORDER------------------')
+            console.log(`${CURRENCY2} balance: `, balances[CURRENCY2].available);
+            console.log(`Price of ${TICKER_SYM}: `, ticker[TICKER_SYM]);
+            if (balances[CURRENCY2].available > 0) {
+                const buyPrice = (ticker[TICKER_SYM]*BUY_MARGIN).toPrecision(5)
+                const orderQuantity = Math.floor(balances[CURRENCY2].available/DIVISOR_CONSTANT/buyPrice)
+                console.log('Order quantity', orderQuantity)
+                console.log('Low-ball price', buyPrice)
+                binance.buy(TICKER_SYM, orderQuantity, buyPrice);
+            }
+            console.log('----------------------------------------------')
+        })
+    });
+}
