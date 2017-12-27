@@ -8,6 +8,7 @@ binance.options({
 const CURRENCY1 = 'XRP'
 const CURRENCY2 = 'ETH'
 const TICKER_SYM = 'XRPETH'
+const WAIT_TIME_FOR_BUY_MS = 60000 // wait one minute for a buy order, otherwise assume the market has moved and re-order
 const DIVISOR_CONSTANT = 1
 const SELL_MARGIN = 1.001
 const BUY_MARGIN = 0.9990
@@ -16,13 +17,13 @@ binance.websockets.userData(balance_update, execution_update);
 buyOrder()
 
 function balance_update(data) {
-	console.log("Balance Update");
-	for ( let obj of data.B ) {
-		let { a:asset, f:available, l:onOrder } = obj;
-		if ( available == "0.00000000" ) continue;
-        //console.log(asset+"\tavailable: "+available+" ("+onOrder+" on order)");
+	//console.log("Balance Update");
+	// for ( let obj of data.B ) {
+	// 	let { a:asset, f:available, l:onOrder } = obj;
+	// 	if ( available == "0.00000000" ) continue;
+    //     //console.log(asset+"\tavailable: "+available+" ("+onOrder+" on order)");
+	// }
 	}
-}
 function execution_update(data) {
 	let { x:executionType, s:symbol, p:price, q:quantity, S:side, o:orderType, i:orderId, X:orderStatus } = data;
     //NEW, CANCELED, REPLACED, REJECTED, TRADE, EXPIRED
@@ -82,7 +83,28 @@ function buyOrder() {
                 const orderQuantity = Math.floor(balances[CURRENCY2].available/DIVISOR_CONSTANT/buyPrice)
                 console.log('Order quantity', orderQuantity)
                 console.log('Low-ball price', buyPrice)
-                binance.buy(TICKER_SYM, orderQuantity, buyPrice);
+                binance.buy(TICKER_SYM, orderQuantity, buyPrice, {}, function(response) {
+                    if (response.msg) {
+                        //error
+                        console.log(`Error: BUY(${TICKER_SYM}, ${orderQuantity}, ${buyPrice}) => ${response.msg}`)
+                    } else {
+                        const orderId = response.orderId
+                        console.debug(`BUY(${TICKER_SYM}, ${orderQuantity}, ${buyPrice}) => Order Id #${orderId}`)
+                        setTimeout(() => {
+                            binance.orderStatus(TICKER_SYM, orderId, function(orderStatus, symbol) {
+                                console.debug(orderId+" order status:", orderStatus);
+                                if (orderStatus.status === 'NEW') {
+                                    // replace the order, the market has moved
+                                    binance.cancel(TICKER_SYM, orderId, function(response, symbol) {
+                                        console.debug(orderId +" cancel response:", JSON.stringify(response));
+                                        buyOrder()
+                                    });
+    
+                                }
+                            });
+                        }, WAIT_TIME_FOR_BUY_MS)
+                    }
+                });
             }
             console.log('----------------------------------------------')
         })
